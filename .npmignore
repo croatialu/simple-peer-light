@@ -1,5 +1,6 @@
 .airtap.yml
 .nyc_output
+.github/
 ci.yml
 img/
 perf/

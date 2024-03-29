@@ -216,7 +216,12 @@ class Peer {
 
   signal (data) {
     if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot signal after peer is destroyed'), 'ERR_DESTROYED')
+    if (this.destroyed) {
+      throw errCode(
+        new Error('cannot signal after peer is destroyed'),
+        'ERR_SIGNALING'
+      )
+    }
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data)
@@ -591,7 +596,10 @@ class Peer {
     this._channel.onclose = () => {
       this._onChannelClose()
     }
-    this._channel.onerror = err => {
+    this._channel.onerror = event => {
+      const err = event.error instanceof Error
+        ? event.error
+        : new Error(`Datachannel error: ${event.message} ${event.filename}:${event.lineno}:${event.colno}`)
       this.destroy(errCode(err, 'ERR_DATA_CHANNEL'))
     }
 
