@@ -7,9 +7,9 @@ const stream = require('readable-stream')
 const buf = Buffer.alloc(10000)
 
 const endless = new stream.Readable({
-  read: function () {
+  read() {
     this.push(buf)
-  }
+  },
 })
 
 let peer
@@ -18,18 +18,20 @@ const socket = new window.WebSocket('ws://localhost:8080')
 
 socket.addEventListener('message', onMessage)
 
-function onMessage (event) {
+function onMessage(event) {
   const message = event.data
   if (message === 'ready') {
-    if (peer) return
+    if (peer)
+      return
     peer = new Peer({ initiator: true })
-    peer.on('signal', function (signal) {
+    peer.on('signal', (signal) => {
       socket.send(JSON.stringify(signal))
     })
-    peer.on('connect', function () {
+    peer.on('connect', () => {
       endless.pipe(peer)
     })
-  } else {
+  }
+  else {
     peer.signal(JSON.parse(message))
   }
 }

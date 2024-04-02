@@ -3,25 +3,24 @@
 const ws = require('ws')
 
 const server = new ws.Server({
-  port: 8080
+  port: 8080,
 })
 
 const sockets = []
 
-server.on('connection', function (socket) {
+server.on('connection', (socket) => {
   sockets.push(socket)
   socket.on('message', onMessage)
-  socket.on('close', function () {
+  socket.on('close', () => {
     sockets.splice(sockets.indexOf(socket), 1)
   })
 
-  function onMessage (message) {
+  function onMessage(message) {
     sockets
       .filter(s => s !== socket)
       .forEach(socket => socket.send(message))
   }
 
-  if (sockets.length === 2) {
+  if (sockets.length === 2)
     sockets.forEach(socket => socket.send('ready'))
-  }
 })

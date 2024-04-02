@@ -1,33 +1,18 @@
 {
   "name": "simple-peer-light",
-  "description": "Simple, light-weight WebRTC video/voice and data channels",
   "version": "1.0.0",
+  "description": "Simple, light-weight WebRTC video/voice and data channels",
   "author": {
     "name": "Gregor Mitscha-Baude",
     "email": "gregor.mitscha-baude@gmx.at"
   },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mitschabaude/simple-peer-light.git"
+  },
   "bugs": {
     "url": "https://github.com/mitschabaude/simple-peer-light/issues"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "airtap": "^4.0.3",
-    "airtap-manual": "^1.0.0",
-    "airtap-sauce": "^1.1.0",
-    "babel-minify": "^0.5.1",
-    "bowser": "^2.11.0",
-    "browserify": "^17.0.0",
-    "coveralls": "^3.1.1",
-    "nyc": "^15.1.0",
-    "prettier-bytes": "^1.0.4",
-    "simple-get": "^4.0.0",
-    "speedometer": "^1.1.0",
-    "standard": "*",
-    "string-to-stream": "^3.0.1",
-    "tape": "^5.5.2",
-    "thunky": "^1.1.0",
-    "wrtc": "^0.4.7",
-    "ws": "^7.5.3"
   },
   "keywords": [
     "data",
@@ -44,15 +29,10 @@
     "webrtc",
     "webrtc stream"
   ],
-  "license": "MIT",
   "main": "index.js",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/mitschabaude/simple-peer-light.git"
-  },
   "scripts": {
     "build": "minify index.js --sourceType module --outFile simplepeer.min.js",
-    "build-browserify": "browserify -s SimplePeer -r . | minify > simplepeer.min.js",
+    "build-browserify": "browserify -s SimplePeer -r . | minify > simplepeer.min.js --sourceType module",
     "size": "npm run build && cat simplepeer.min.js | gzip | wc -c",
     "// test": "standard && npm run test-node && npm run test-browser",
     "test": "standard && npm run test-browser",
@@ -60,5 +40,28 @@
     "test-browser-local": "airtap --coverage --preset local -- test/*.js",
     "test-node": "WRTC=wrtc tape test/*.js",
     "coverage": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^2.11.4",
+    "@playwright/test": "^1.42.1",
+    "airtap": "^4.0.3",
+    "airtap-manual": "^1.0.0",
+    "airtap-sauce": "^1.1.0",
+    "babel-minify": "^0.5.1",
+    "bowser": "^2.11.0",
+    "browserify": "^17.0.0",
+    "coveralls": "^3.1.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-format": "^0.1.0",
+    "nyc": "^15.1.0",
+    "prettier-bytes": "^1.0.4",
+    "simple-get": "^4.0.0",
+    "speedometer": "^1.1.0",
+    "standard": "*",
+    "string-to-stream": "^3.0.1",
+    "tape": "^5.5.2",
+    "thunky": "^1.1.0",
+    "wrtc": "^0.4.7",
+    "ws": "^7.5.3"
   }
 }

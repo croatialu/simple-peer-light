@@ -15,22 +15,24 @@ const socket = new window.WebSocket('ws://localhost:8080')
 
 socket.addEventListener('message', onMessage)
 
-function onMessage (event) {
+function onMessage(event) {
   const message = event.data
   if (message === 'ready') {
-    if (peer) return
+    if (peer)
+      return
     peer = new Peer()
-    peer.on('signal', function (signal) {
+    peer.on('signal', (signal) => {
       socket.send(JSON.stringify(signal))
     })
-    peer.on('data', function (message) {
+    peer.on('data', (message) => {
       speed(message.length)
     })
-  } else {
+  }
+  else {
     peer.signal(JSON.parse(message))
   }
 }
 
-setInterval(function () {
+setInterval(() => {
   console.log(prettierBytes(speed()))
 }, 1000)

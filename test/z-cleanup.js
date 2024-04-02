@@ -3,10 +3,9 @@
 
 const test = require('tape')
 
-test('cleanup', function (t) {
+test('cleanup', (t) => {
   // Shut down the process and any daemons
   t.end()
-  if (process && process.exit) {
+  if (process && process.exit)
     process.exit(0)
-  }
 })

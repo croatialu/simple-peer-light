@@ -1,30 +1,31 @@
-const common = require('./common')
-const Peer = require('../')
 const test = require('tape')
+const Peer = require('../')
+const common = require('./common')
 
 let config
-test('get config', function (t) {
-  common.getConfig(function (err, _config) {
-    if (err) return t.fail(err)
+test('get config', (t) => {
+  common.getConfig((err, _config) => {
+    if (err)
+      return t.fail(err)
     config = _config
     t.end()
   })
 })
 
-test('disable trickle', function (t) {
+test('disable trickle', (t) => {
   t.plan(8)
 
   const peer1 = new Peer({ config, initiator: true, trickle: false, wrtc: common.wrtc })
   const peer2 = new Peer({ config, trickle: false, wrtc: common.wrtc })
 
   let numSignal1 = 0
-  peer1.on('signal', function (data) {
+  peer1.on('signal', (data) => {
     numSignal1 += 1
     peer2.signal(data)
   })
 
   let numSignal2 = 0
-  peer2.on('signal', function (data) {
+  peer2.on('signal', (data) => {
     numSignal2 += 1
     peer1.signal(data)
   })
@@ -32,8 +33,9 @@ test('disable trickle', function (t) {
   peer1.on('connect', tryTest)
   peer2.on('connect', tryTest)
 
-  function tryTest () {
-    if (!peer1.connected || !peer2.connected) return
+  function tryTest() {
+    if (!peer1.connected || !peer2.connected)
+      return
 
     t.equal(numSignal1, 1, 'only one `signal` event')
     t.equal(numSignal2, 1, 'only one `signal` event')
@@ -41,36 +43,36 @@ test('disable trickle', function (t) {
     t.equal(peer2.initiator, false, 'peer2 is not initiator')
 
     peer1.send('sup peer2')
-    peer2.on('data', function (data) {
+    peer2.on('data', (data) => {
       t.equal(data.toString(), 'sup peer2', 'got correct message')
 
       peer2.send('sup peer1')
-      peer1.on('data', function (data) {
+      peer1.on('data', (data) => {
         t.equal(data.toString(), 'sup peer1', 'got correct message')
 
-        peer1.on('close', function () { t.pass('peer1 destroyed') })
+        peer1.on('close', () => { t.pass('peer1 destroyed') })
         peer1.destroy()
-        peer2.on('close', function () { t.pass('peer2 destroyed') })
+        peer2.on('close', () => { t.pass('peer2 destroyed') })
         peer2.destroy()
       })
     })
   }
 })
 
-test('disable trickle (only initiator)', function (t) {
+test('disable trickle (only initiator)', (t) => {
   t.plan(8)
 
   const peer1 = new Peer({ config, initiator: true, trickle: false, wrtc: common.wrtc })
   const peer2 = new Peer({ config, wrtc: common.wrtc })
 
   let numSignal1 = 0
-  peer1.on('signal', function (data) {
+  peer1.on('signal', (data) => {
     numSignal1 += 1
     peer2.signal(data)
   })
 
   let numSignal2 = 0
-  peer2.on('signal', function (data) {
+  peer2.on('signal', (data) => {
     numSignal2 += 1
     peer1.signal(data)
   })
@@ -78,8 +80,9 @@ test('disable trickle (only initiator)', function (t) {
   peer1.on('connect', tryTest)
   peer2.on('connect', tryTest)
 
-  function tryTest () {
-    if (!peer1.connected || !peer2.connected) return
+  function tryTest() {
+    if (!peer1.connected || !peer2.connected)
+      return
 
     t.equal(numSignal1, 1, 'only one `signal` event for initiator')
     t.ok(numSignal2 >= 1, 'at least one `signal` event for receiver')
@@ -87,36 +90,36 @@ test('disable trickle (only initiator)', function (t) {
     t.equal(peer2.initiator, false, 'peer2 is not initiator')
 
     peer1.send('sup peer2')
-    peer2.on('data', function (data) {
+    peer2.on('data', (data) => {
       t.equal(data.toString(), 'sup peer2', 'got correct message')
 
       peer2.send('sup peer1')
-      peer1.on('data', function (data) {
+      peer1.on('data', (data) => {
         t.equal(data.toString(), 'sup peer1', 'got correct message')
 
-        peer1.on('close', function () { t.pass('peer1 destroyed') })
+        peer1.on('close', () => { t.pass('peer1 destroyed') })
         peer1.destroy()
-        peer2.on('close', function () { t.pass('peer2 destroyed') })
+        peer2.on('close', () => { t.pass('peer2 destroyed') })
         peer2.destroy()
       })
     })
   }
 })
 
-test('disable trickle (only receiver)', function (t) {
+test('disable trickle (only receiver)', (t) => {
   t.plan(8)
 
   const peer1 = new Peer({ config, initiator: true, wrtc: common.wrtc })
   const peer2 = new Peer({ config, trickle: false, wrtc: common.wrtc })
 
   let numSignal1 = 0
-  peer1.on('signal', function (data) {
+  peer1.on('signal', (data) => {
     numSignal1 += 1
     peer2.signal(data)
   })
 
   let numSignal2 = 0
-  peer2.on('signal', function (data) {
+  peer2.on('signal', (data) => {
     numSignal2 += 1
     peer1.signal(data)
   })
@@ -124,8 +127,9 @@ test('disable trickle (only receiver)', function (t) {
   peer1.on('connect', tryTest)
   peer2.on('connect', tryTest)
 
-  function tryTest () {
-    if (!peer1.connected || !peer2.connected) return
+  function tryTest() {
+    if (!peer1.connected || !peer2.connected)
+      return
 
     t.ok(numSignal1 >= 1, 'at least one `signal` event for initiator')
     t.equal(numSignal2, 1, 'only one `signal` event for receiver')
@@ -133,29 +137,29 @@ test('disable trickle (only receiver)', function (t) {
     t.equal(peer2.initiator, false, 'peer2 is not initiator')
 
     peer1.send('sup peer2')
-    peer2.on('data', function (data) {
+    peer2.on('data', (data) => {
       t.equal(data.toString(), 'sup peer2', 'got correct message')
 
       peer2.send('sup peer1')
-      peer1.on('data', function (data) {
+      peer1.on('data', (data) => {
         t.equal(data.toString(), 'sup peer1', 'got correct message')
 
-        peer1.on('close', function () { t.pass('peer1 destroyed') })
+        peer1.on('close', () => { t.pass('peer1 destroyed') })
         peer1.destroy()
-        peer2.on('close', function () { t.pass('peer2 destroyed') })
+        peer2.on('close', () => { t.pass('peer2 destroyed') })
         peer2.destroy()
       })
     })
   }
 })
 
-test('null end candidate does not throw', function (t) {
+test('null end candidate does not throw', (t) => {
   const peer1 = new Peer({ trickle: true, config, initiator: true, wrtc: common.wrtc })
   const peer2 = new Peer({ trickle: true, config, wrtc: common.wrtc })
 
   // translate all falsey candidates to null
   let endCandidateSent = false
-  function endToNull (data) {
+  function endToNull(data) {
     if (data.candidate && !data.candidate.candidate) {
       data.candidate.candidate = null
       endCandidateSent = true
@@ -179,13 +183,13 @@ test('null end candidate does not throw', function (t) {
   })
 })
 
-test('empty-string end candidate does not throw', function (t) {
+test('empty-string end candidate does not throw', (t) => {
   const peer1 = new Peer({ trickle: true, config, initiator: true, wrtc: common.wrtc })
   const peer2 = new Peer({ trickle: true, config, wrtc: common.wrtc })
 
   // translate all falsey candidates to null
   let endCandidateSent = false
-  function endToEmptyString (data) {
+  function endToEmptyString(data) {
     if (data.candidate && !data.candidate.candidate) {
       data.candidate.candidate = ''
       endCandidateSent = true
@@ -209,7 +213,7 @@ test('empty-string end candidate does not throw', function (t) {
   })
 })
 
-test('mDNS candidate does not throw', function (t) {
+test('mDNS candidate does not throw', (t) => {
   const peer1 = new Peer({ trickle: true, config, initiator: true, wrtc: common.wrtc })
   const peer2 = new Peer({ trickle: true, config, wrtc: common.wrtc })
 
@@ -229,35 +233,33 @@ test('mDNS candidate does not throw', function (t) {
   })
 })
 
-test('ice candidates received before description', function (t) {
+test('ice candidates received before description', (t) => {
   t.plan(3)
 
   const peer1 = new Peer({ config, initiator: true, wrtc: common.wrtc })
   const peer2 = new Peer({ config, wrtc: common.wrtc })
 
   const signalQueue1 = []
-  peer1.on('signal', function (data) {
+  peer1.on('signal', (data) => {
     signalQueue1.push(data)
-    if (data.candidate) {
+    if (data.candidate)
       while (signalQueue1[0]) peer2.signal(signalQueue1.pop())
-    }
   })
 
   const signalQueue2 = []
-  peer2.on('signal', function (data) {
+  peer2.on('signal', (data) => {
     signalQueue2.push(data)
-    if (data.candidate) {
+    if (data.candidate)
       while (signalQueue2[0]) peer1.signal(signalQueue2.pop())
-    }
   })
 
-  peer1.on('connect', function () {
+  peer1.on('connect', () => {
     t.pass('peers connected')
 
-    peer2.on('connect', function () {
-      peer1.on('close', function () { t.pass('peer1 destroyed') })
+    peer2.on('connect', () => {
+      peer1.on('close', () => { t.pass('peer1 destroyed') })
       peer1.destroy()
-      peer2.on('close', function () { t.pass('peer2 destroyed') })
+      peer2.on('close', () => { t.pass('peer2 destroyed') })
       peer2.destroy()
     })
   })

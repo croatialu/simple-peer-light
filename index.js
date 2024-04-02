@@ -3,58 +3,60 @@ const MAX_BUFFERED_AMOUNT = 64 * 1024
 const ICECOMPLETE_TIMEOUT = 5 * 1000
 const CHANNEL_CLOSING_TIMEOUT = 5 * 1000
 
-function randombytes (size) {
+function randombytes(size) {
   const array = new Uint8Array(size)
-  for (let i = 0; i < size; i++) {
+  for (let i = 0; i < size; i++)
     array[i] = (Math.random() * 256) | 0
-  }
+
   return array
 }
 
-function getBrowserRTC () {
-  if (typeof globalThis === 'undefined') return null
+function getBrowserRTC() {
+  if (typeof globalThis === 'undefined')
+    return null
   const wrtc = {
     RTCPeerConnection:
-      globalThis.RTCPeerConnection ||
-      globalThis.mozRTCPeerConnection ||
-      globalThis.webkitRTCPeerConnection,
+      globalThis.RTCPeerConnection
+      || globalThis.mozRTCPeerConnection
+      || globalThis.webkitRTCPeerConnection,
     RTCSessionDescription:
-      globalThis.RTCSessionDescription ||
-      globalThis.mozRTCSessionDescription ||
-      globalThis.webkitRTCSessionDescription,
+      globalThis.RTCSessionDescription
+      || globalThis.mozRTCSessionDescription
+      || globalThis.webkitRTCSessionDescription,
     RTCIceCandidate:
-      globalThis.RTCIceCandidate ||
-      globalThis.mozRTCIceCandidate ||
-      globalThis.webkitRTCIceCandidate
+      globalThis.RTCIceCandidate
+      || globalThis.mozRTCIceCandidate
+      || globalThis.webkitRTCIceCandidate,
   }
-  if (!wrtc.RTCPeerConnection) return null
+  if (!wrtc.RTCPeerConnection)
+    return null
   return wrtc
 }
 
-function errCode (err, code) {
+function errCode(err, code) {
   Object.defineProperty(err, 'code', {
     value: code,
     enumerable: true,
-    configurable: true
+    configurable: true,
   })
   return err
 }
 
 // HACK: Filter trickle lines when trickle is disabled #354
-function filterTrickle (sdp) {
+function filterTrickle(sdp) {
   return sdp.replace(/a=ice-options:trickle\s\n/g, '')
 }
 
-function warn (message) {
+function warn(message) {
   console.warn(message)
 }
 
 /**
  * WebRTC peer connection.
- * @param {Object} opts
+ * @param {object} opts
  */
 class Peer {
-  constructor (opts = {}) {
+  constructor(opts = {}) {
     this._map = new Map() // for event emitter
 
     this._id = randombytes(4).toString('hex').slice(0, 7)
@@ -74,8 +76,8 @@ class Peer {
     this.sdpTransform = opts.sdpTransform || (sdp => sdp)
     this.streams = opts.streams || (opts.stream ? [opts.stream] : []) // support old "stream" option
     this.trickle = opts.trickle !== undefined ? opts.trickle : true
-    this.allowHalfTrickle =
-      opts.allowHalfTrickle !== undefined ? opts.allowHalfTrickle : false
+    this.allowHalfTrickle
+      = opts.allowHalfTrickle !== undefined ? opts.allowHalfTrickle : false
     this.iceCompleteTimeout = opts.iceCompleteTimeout || ICECOMPLETE_TIMEOUT
 
     this.destroyed = false
@@ -89,21 +91,22 @@ class Peer {
     this.localFamily = undefined
     this.localPort = undefined
 
-    this._wrtc =
-      opts.wrtc && typeof opts.wrtc === 'object' ? opts.wrtc : getBrowserRTC()
+    this._wrtc
+      = opts.wrtc && typeof opts.wrtc === 'object' ? opts.wrtc : getBrowserRTC()
 
     if (!this._wrtc) {
       if (typeof window === 'undefined') {
         throw errCode(
           new Error(
-            'No WebRTC support: Specify `opts.wrtc` option in this environment'
+            'No WebRTC support: Specify `opts.wrtc` option in this environment',
           ),
-          'ERR_WEBRTC_SUPPORT'
+          'ERR_WEBRTC_SUPPORT',
         )
-      } else {
+      }
+      else {
         throw errCode(
           new Error('No WebRTC support: Not a supported browser'),
-          'ERR_WEBRTC_SUPPORT'
+          'ERR_WEBRTC_SUPPORT',
         )
       }
     }
@@ -132,7 +135,8 @@ class Peer {
 
     try {
       this._pc = new this._wrtc.RTCPeerConnection(this.config)
-    } catch (err) {
+    }
+    catch (err) {
       this.destroy(errCode(err, 'ERR_PC_CONSTRUCTOR'))
       return
     }
@@ -153,13 +157,13 @@ class Peer {
     this._pc.onsignalingstatechange = () => {
       this._onSignalingStateChange()
     }
-    this._pc.onicecandidate = event => {
+    this._pc.onicecandidate = (event) => {
       this._onIceCandidate(event)
     }
 
     // HACK: Fix for odd Firefox behavior, see: https://github.com/feross/simple-peer/pull/783
     if (typeof this._pc.peerIdentity === 'object') {
-      this._pc.peerIdentity.catch(err => {
+      this._pc.peerIdentity.catch((err) => {
         this.destroy(errCode(err, 'ERR_PC_PEER_IDENTITY'))
       })
     }
@@ -174,21 +178,22 @@ class Peer {
       this._setupData({
         channel: this._pc.createDataChannel(
           this.channelName,
-          this.channelConfig
-        )
+          this.channelConfig,
+        ),
       })
-    } else {
-      this._pc.ondatachannel = event => {
+    }
+    else {
+      this._pc.ondatachannel = (event) => {
         this._setupData(event)
       }
     }
 
     if (this.streams) {
-      this.streams.forEach(stream => {
+      this.streams.forEach((stream) => {
         this.addStream(stream)
       })
     }
-    this._pc.ontrack = event => {
+    this._pc.ontrack = (event) => {
       this._onTrack(event)
     }
 
@@ -196,36 +201,38 @@ class Peer {
     this._needsNegotiation()
   }
 
-  get bufferSize () {
+  get bufferSize() {
     return (this._channel && this._channel.bufferedAmount) || 0
   }
 
   // HACK: it's possible channel.readyState is "closing" before peer.destroy() fires
   // https://bugs.chromium.org/p/chromium/issues/detail?id=882743
-  get connected () {
+  get connected() {
     return this._connected && this._channel.readyState === 'open'
   }
 
-  address () {
+  address() {
     return {
       port: this.localPort,
       family: this.localFamily,
-      address: this.localAddress
+      address: this.localAddress,
     }
   }
 
-  signal (data) {
-    if (this.destroying) return
+  signal(data) {
+    if (this.destroying)
+      return
     if (this.destroyed) {
       throw errCode(
         new Error('cannot signal after peer is destroyed'),
-        'ERR_SIGNALING'
+        'ERR_SIGNALING',
       )
     }
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data)
-      } catch (err) {
+      }
+      catch (err) {
         data = {}
       }
     }
@@ -239,59 +246,59 @@ class Peer {
       this._debug('got request for transceiver')
       this.addTransceiver(
         data.transceiverRequest.kind,
-        data.transceiverRequest.init
+        data.transceiverRequest.init,
       )
     }
     if (data.candidate) {
-      if (this._pc.remoteDescription && this._pc.remoteDescription.type) {
+      if (this._pc.remoteDescription && this._pc.remoteDescription.type)
         this._addIceCandidate(data.candidate)
-      } else {
+      else
         this._pendingCandidates.push(data.candidate)
-      }
     }
     if (data.sdp) {
       this._pc
         .setRemoteDescription(new this._wrtc.RTCSessionDescription(data))
         .then(() => {
-          if (this.destroyed) return
+          if (this.destroyed)
+            return
 
-          this._pendingCandidates.forEach(candidate => {
+          this._pendingCandidates.forEach((candidate) => {
             this._addIceCandidate(candidate)
           })
           this._pendingCandidates = []
 
-          if (this._pc.remoteDescription.type === 'offer') this._createAnswer()
+          if (this._pc.remoteDescription.type === 'offer')
+            this._createAnswer()
         })
-        .catch(err => {
+        .catch((err) => {
           this.destroy(errCode(err, 'ERR_SET_REMOTE_DESCRIPTION'))
         })
     }
     if (
-      !data.sdp &&
-      !data.candidate &&
-      !data.renegotiate &&
-      !data.transceiverRequest
+      !data.sdp
+      && !data.candidate
+      && !data.renegotiate
+      && !data.transceiverRequest
     ) {
       this.destroy(
         errCode(
           new Error('signal() called with invalid signal data'),
-          'ERR_SIGNALING'
-        )
+          'ERR_SIGNALING',
+        ),
       )
     }
   }
 
-  _addIceCandidate (candidate) {
+  _addIceCandidate(candidate) {
     const iceCandidateObj = new this._wrtc.RTCIceCandidate(candidate)
-    this._pc.addIceCandidate(iceCandidateObj).catch(err => {
+    this._pc.addIceCandidate(iceCandidateObj).catch((err) => {
       if (
-        !iceCandidateObj.address ||
-        iceCandidateObj.address.endsWith('.local')
-      ) {
+        !iceCandidateObj.address
+        || iceCandidateObj.address.endsWith('.local')
+      )
         warn('Ignoring unsupported ICE candidate.')
-      } else {
+      else
         this.destroy(errCode(err, 'ERR_ADD_ICE_CANDIDATE'))
-      }
     })
   }
 
@@ -299,34 +306,40 @@ class Peer {
    * Send text/binary data to the remote peer.
    * @param {ArrayBufferView|ArrayBuffer|string|Blob} chunk
    */
-  send (chunk) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot send after peer is destroyed'), 'ERR_DESTROYED')
+  send(chunk) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot send after peer is destroyed'), 'ERR_DESTROYED')
     this._channel.send(chunk)
   }
 
   /**
    * Add a Transceiver to the connection.
-   * @param {String} kind
-   * @param {Object} init
+   * @param {string} kind
+   * @param {object} init
    */
-  addTransceiver (kind, init) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot addTransceiver after peer is destroyed'), 'ERR_DESTROYED')
+  addTransceiver(kind, init) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot addTransceiver after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addTransceiver()')
 
     if (this.initiator) {
       try {
         this._pc.addTransceiver(kind, init)
         this._needsNegotiation()
-      } catch (err) {
+      }
+      catch (err) {
         this.destroy(errCode(err, 'ERR_ADD_TRANSCEIVER'))
       }
-    } else {
+    }
+    else {
       this.emit('signal', {
         // request initiator to renegotiate
         type: 'transceiverRequest',
-        transceiverRequest: { kind, init }
+        transceiverRequest: { kind, init },
       })
     }
   }
@@ -335,12 +348,14 @@ class Peer {
    * Add a MediaStream to the connection.
    * @param {MediaStream} stream
    */
-  addStream (stream) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot addStream after peer is destroyed'), 'ERR_DESTROYED')
+  addStream(stream) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot addStream after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addStream()')
 
-    stream.getTracks().forEach(track => {
+    stream.getTracks().forEach((track) => {
       this.addTrack(track, stream)
     })
   }
@@ -350,9 +365,11 @@ class Peer {
    * @param {MediaStreamTrack} track
    * @param {MediaStream} stream
    */
-  addTrack (track, stream) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot addTrack after peer is destroyed'), 'ERR_DESTROYED')
+  addTrack(track, stream) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot addTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('addTrack()')
 
     const submap = this._senderMap.get(track) || new Map() // nested Maps map [track, stream] to sender
@@ -362,17 +379,19 @@ class Peer {
       submap.set(stream, sender)
       this._senderMap.set(track, submap)
       this._needsNegotiation()
-    } else if (sender.removed) {
+    }
+    else if (sender.removed) {
       throw errCode(
         new Error(
-          'Track has been removed. You should enable/disable tracks that you want to re-add.'
+          'Track has been removed. You should enable/disable tracks that you want to re-add.',
         ),
-        'ERR_SENDER_REMOVED'
+        'ERR_SENDER_REMOVED',
       )
-    } else {
+    }
+    else {
       throw errCode(
         new Error('Track has already been added to that stream.'),
-        'ERR_SENDER_ALREADY_ADDED'
+        'ERR_SENDER_ALREADY_ADDED',
       )
     }
   }
@@ -383,9 +402,11 @@ class Peer {
    * @param {MediaStreamTrack} newTrack
    * @param {MediaStream} stream
    */
-  replaceTrack (oldTrack, newTrack, stream) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot replaceTrack after peer is destroyed'), 'ERR_DESTROYED')
+  replaceTrack(oldTrack, newTrack, stream) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot replaceTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('replaceTrack()')
 
     const submap = this._senderMap.get(oldTrack)
@@ -393,19 +414,21 @@ class Peer {
     if (!sender) {
       throw errCode(
         new Error('Cannot replace track that was never added.'),
-        'ERR_TRACK_NOT_ADDED'
+        'ERR_TRACK_NOT_ADDED',
       )
     }
-    if (newTrack) this._senderMap.set(newTrack, submap)
+    if (newTrack)
+      this._senderMap.set(newTrack, submap)
 
     if (sender.replaceTrack != null) {
       sender.replaceTrack(newTrack)
-    } else {
+    }
+    else {
       this.destroy(
         errCode(
           new Error('replaceTrack is not supported in this browser'),
-          'ERR_UNSUPPORTED_REPLACETRACK'
-        )
+          'ERR_UNSUPPORTED_REPLACETRACK',
+        ),
       )
     }
   }
@@ -415,9 +438,11 @@ class Peer {
    * @param {MediaStreamTrack} track
    * @param {MediaStream} stream
    */
-  removeTrack (track, stream) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot removeTrack after peer is destroyed'), 'ERR_DESTROYED')
+  removeTrack(track, stream) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot removeTrack after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('removeSender()')
 
     const submap = this._senderMap.get(track)
@@ -425,18 +450,18 @@ class Peer {
     if (!sender) {
       throw errCode(
         new Error('Cannot remove track that was never added.'),
-        'ERR_TRACK_NOT_ADDED'
+        'ERR_TRACK_NOT_ADDED',
       )
     }
     try {
       sender.removed = true
       this._pc.removeTrack(sender)
-    } catch (err) {
-      if (err.name === 'NS_ERROR_UNEXPECTED') {
+    }
+    catch (err) {
+      if (err.name === 'NS_ERROR_UNEXPECTED')
         this._sendersAwaitingStable.push(sender) // HACK: Firefox must wait until (signalingState === stable) https://bugzilla.mozilla.org/show_bug.cgi?id=1133874
-      } else {
+      else
         this.destroy(errCode(err, 'ERR_REMOVE_TRACK'))
-      }
     }
     this._needsNegotiation()
   }
@@ -445,65 +470,75 @@ class Peer {
    * Remove a MediaStream from the connection.
    * @param {MediaStream} stream
    */
-  removeStream (stream) {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot removeStream after peer is destroyed'), 'ERR_DESTROYED')
+  removeStream(stream) {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot removeStream after peer is destroyed'), 'ERR_DESTROYED')
     this._debug('removeSenders()')
 
-    stream.getTracks().forEach(track => {
+    stream.getTracks().forEach((track) => {
       this.removeTrack(track, stream)
     })
   }
 
-  _needsNegotiation () {
+  _needsNegotiation() {
     this._debug('_needsNegotiation')
-    if (this._batchedNegotiation) return // batch synchronous renegotiations
+    if (this._batchedNegotiation)
+      return // batch synchronous renegotiations
     this._batchedNegotiation = true
     queueMicrotask(() => {
       this._batchedNegotiation = false
       if (this.initiator || !this._firstNegotiation) {
         this._debug('starting batched negotiation')
         this.negotiate()
-      } else {
+      }
+      else {
         this._debug('non-initiator initial negotiation request discarded')
       }
       this._firstNegotiation = false
     })
   }
 
-  negotiate () {
-    if (this.destroying) return
-    if (this.destroyed) throw errCode(new Error('cannot negotiate after peer is destroyed'), 'ERR_DESTROYED')
+  negotiate() {
+    if (this.destroying)
+      return
+    if (this.destroyed)
+      throw errCode(new Error('cannot negotiate after peer is destroyed'), 'ERR_DESTROYED')
 
     if (this.initiator) {
       if (this._isNegotiating) {
         this._queuedNegotiation = true
         this._debug('already negotiating, queueing')
-      } else {
+      }
+      else {
         this._debug('start negotiation')
         setTimeout(() => {
           // HACK: Chrome crashes if we immediately call createOffer
           this._createOffer()
         }, 0)
       }
-    } else {
+    }
+    else {
       if (this._isNegotiating) {
         this._queuedNegotiation = true
         this._debug('already negotiating, queueing')
-      } else {
+      }
+      else {
         this._debug('requesting negotiation from initiator')
         this.emit('signal', {
           // request initiator to renegotiate
           type: 'renegotiate',
-          renegotiate: true
+          renegotiate: true,
         })
       }
     }
     this._isNegotiating = true
   }
 
-  destroy (err) {
-    if (this.destroyed || this.destroying) return
+  destroy(err) {
+    if (this.destroyed || this.destroying)
+      return
     this.destroying = true
 
     this._debug('destroying (error: %s)', err && (err.message || err))
@@ -533,7 +568,8 @@ class Peer {
       if (this._channel) {
         try {
           this._channel.close()
-        } catch (err) {}
+        }
+        catch (err) {}
 
         // allow events concurrent with destruction to be handled
         this._channel.onmessage = null
@@ -544,7 +580,8 @@ class Peer {
       if (this._pc) {
         try {
           this._pc.close()
-        } catch (err) {}
+        }
+        catch (err) {}
 
         // allow events concurrent with destruction to be handled
         this._pc.oniceconnectionstatechange = null
@@ -557,12 +594,13 @@ class Peer {
       this._pc = null
       this._channel = null
 
-      if (err) this.emit('error', err)
+      if (err)
+        this.emit('error', err)
       this.emit('close')
     })
   }
 
-  _setupData (event) {
+  _setupData(event) {
     if (!event.channel) {
       // In some situations `pc.createDataChannel()` returns `undefined` (in wrtc),
       // which is invalid behavior. Handle it gracefully.
@@ -570,21 +608,20 @@ class Peer {
       return this.destroy(
         errCode(
           new Error('Data channel event is missing `channel` property'),
-          'ERR_DATA_CHANNEL'
-        )
+          'ERR_DATA_CHANNEL',
+        ),
       )
     }
 
     this._channel = event.channel
     this._channel.binaryType = 'arraybuffer'
 
-    if (typeof this._channel.bufferedAmountLowThreshold === 'number') {
+    if (typeof this._channel.bufferedAmountLowThreshold === 'number')
       this._channel.bufferedAmountLowThreshold = MAX_BUFFERED_AMOUNT
-    }
 
     this.channelName = this._channel.label
 
-    this._channel.onmessage = event => {
+    this._channel.onmessage = (event) => {
       this._onChannelMessage(event)
     }
     this._channel.onbufferedamountlow = () => {
@@ -596,7 +633,7 @@ class Peer {
     this._channel.onclose = () => {
       this._onChannelClose()
     }
-    this._channel.onerror = event => {
+    this._channel.onerror = (event) => {
       const err = event.error instanceof Error
         ? event.error
         : new Error(`Datachannel error: ${event.message} ${event.filename}:${event.lineno}:${event.colno}`)
@@ -609,17 +646,21 @@ class Peer {
     this._closingInterval = setInterval(() => {
       // No "onclosing" event
       if (this._channel && this._channel.readyState === 'closing') {
-        if (isClosing) this._onChannelClose() // closing timed out: equivalent to onclose firing
+        if (isClosing)
+          this._onChannelClose() // closing timed out: equivalent to onclose firing
         isClosing = true
-      } else {
+      }
+      else {
         isClosing = false
       }
     }, CHANNEL_CLOSING_TIMEOUT)
   }
 
-  _startIceCompleteTimeout () {
-    if (this.destroyed) return
-    if (this._iceCompleteTimer) return
+  _startIceCompleteTimeout() {
+    if (this.destroyed)
+      return
+    if (this._iceCompleteTimer)
+      return
     this._debug('started iceComplete timeout')
     this._iceCompleteTimer = setTimeout(() => {
       if (!this._iceComplete) {
@@ -631,51 +672,57 @@ class Peer {
     }, this.iceCompleteTimeout)
   }
 
-  _createOffer () {
-    if (this.destroyed) return
+  _createOffer() {
+    if (this.destroyed)
+      return
 
     this._pc
       .createOffer(this.offerOptions)
-      .then(offer => {
-        if (this.destroyed) return
-        if (!this.trickle && !this.allowHalfTrickle) { offer.sdp = filterTrickle(offer.sdp) }
+      .then((offer) => {
+        if (this.destroyed)
+          return
+        if (!this.trickle && !this.allowHalfTrickle)
+          offer.sdp = filterTrickle(offer.sdp)
         offer.sdp = this.sdpTransform(offer.sdp)
 
         const sendOffer = () => {
-          if (this.destroyed) return
+          if (this.destroyed)
+            return
           const signal = this._pc.localDescription || offer
           this._debug('signal')
           this.emit('signal', {
             type: signal.type,
-            sdp: signal.sdp
+            sdp: signal.sdp,
           })
         }
 
         const onSuccess = () => {
           this._debug('createOffer success')
-          if (this.destroyed) return
-          if (this.trickle || this._iceComplete) sendOffer()
+          if (this.destroyed)
+            return
+          if (this.trickle || this._iceComplete)
+            sendOffer()
           else this.once('_iceComplete', sendOffer) // wait for candidates
         }
 
-        const onError = err => {
+        const onError = (err) => {
           this.destroy(errCode(err, 'ERR_SET_LOCAL_DESCRIPTION'))
         }
 
         this._pc.setLocalDescription(offer).then(onSuccess).catch(onError)
       })
-      .catch(err => {
+      .catch((err) => {
         this.destroy(errCode(err, 'ERR_CREATE_OFFER'))
       })
   }
 
-  _requestMissingTransceivers () {
+  _requestMissingTransceivers() {
     if (this._pc.getTransceivers) {
-      this._pc.getTransceivers().forEach(transceiver => {
+      this._pc.getTransceivers().forEach((transceiver) => {
         if (
-          !transceiver.mid &&
-          transceiver.sender.track &&
-          !transceiver.requested
+          !transceiver.mid
+          && transceiver.sender.track
+          && !transceiver.requested
         ) {
           transceiver.requested = true // HACK: Safari returns negotiated transceivers with a null mid
           this.addTransceiver(transceiver.sender.track.kind)
@@ -684,68 +731,77 @@ class Peer {
     }
   }
 
-  _createAnswer () {
-    if (this.destroyed) return
+  _createAnswer() {
+    if (this.destroyed)
+      return
 
     this._pc
       .createAnswer(this.answerOptions)
-      .then(answer => {
-        if (this.destroyed) return
-        if (!this.trickle && !this.allowHalfTrickle) { answer.sdp = filterTrickle(answer.sdp) }
+      .then((answer) => {
+        if (this.destroyed)
+          return
+        if (!this.trickle && !this.allowHalfTrickle)
+          answer.sdp = filterTrickle(answer.sdp)
         answer.sdp = this.sdpTransform(answer.sdp)
 
         const sendAnswer = () => {
-          if (this.destroyed) return
+          if (this.destroyed)
+            return
           const signal = this._pc.localDescription || answer
           this._debug('signal')
           this.emit('signal', {
             type: signal.type,
-            sdp: signal.sdp
+            sdp: signal.sdp,
           })
-          if (!this.initiator) this._requestMissingTransceivers()
+          if (!this.initiator)
+            this._requestMissingTransceivers()
         }
 
         const onSuccess = () => {
-          if (this.destroyed) return
-          if (this.trickle || this._iceComplete) sendAnswer()
+          if (this.destroyed)
+            return
+          if (this.trickle || this._iceComplete)
+            sendAnswer()
           else this.once('_iceComplete', sendAnswer)
         }
 
-        const onError = err => {
+        const onError = (err) => {
           this.destroy(errCode(err, 'ERR_SET_LOCAL_DESCRIPTION'))
         }
 
         this._pc.setLocalDescription(answer).then(onSuccess).catch(onError)
       })
-      .catch(err => {
+      .catch((err) => {
         this.destroy(errCode(err, 'ERR_CREATE_ANSWER'))
       })
   }
 
-  _onConnectionStateChange () {
-    if (this.destroyed) return
+  _onConnectionStateChange() {
+    if (this.destroyed)
+      return
     if (this._pc.connectionState === 'failed') {
       this.destroy(
-        errCode(new Error('Connection failed.'), 'ERR_CONNECTION_FAILURE')
+        errCode(new Error('Connection failed.'), 'ERR_CONNECTION_FAILURE'),
       )
     }
   }
 
-  _onIceStateChange () {
-    if (this.destroyed) return
+  _onIceStateChange() {
+    if (this.destroyed)
+      return
     const iceConnectionState = this._pc.iceConnectionState
     const iceGatheringState = this._pc.iceGatheringState
 
     this._debug(
       'iceStateChange (connection: %s) (gathering: %s)',
       iceConnectionState,
-      iceGatheringState
+      iceGatheringState,
     )
     this.emit('iceStateChange', iceConnectionState, iceGatheringState)
 
     if (
-      iceConnectionState === 'connected' ||
-      iceConnectionState === 'completed'
+      iceConnectionState === 'connected'
+      || iceConnectionState === 'completed'
     ) {
       this._pcReady = true
       this._maybeReady()
@@ -754,25 +810,25 @@ class Peer {
       this.destroy(
         errCode(
           new Error('Ice connection failed.'),
-          'ERR_ICE_CONNECTION_FAILURE'
-        )
+          'ERR_ICE_CONNECTION_FAILURE',
+        ),
       )
     }
     if (iceConnectionState === 'closed') {
       this.destroy(
         errCode(
           new Error('Ice connection closed.'),
-          'ERR_ICE_CONNECTION_CLOSED'
-        )
+          'ERR_ICE_CONNECTION_CLOSED',
+        ),
       )
     }
   }
 
-  getStats (cb) {
+  getStats(cb) {
     // statreports can come with a value array instead of properties
-    const flattenValues = report => {
+    const flattenValues = (report) => {
       if (Object.prototype.toString.call(report.values) === '[object Array]') {
-        report.values.forEach(value => {
+        report.values.forEach((value) => {
           Object.assign(report, value)
         })
       }
@@ -782,27 +838,29 @@ class Peer {
     // Promise-based getStats() (standard)
     if (this._pc.getStats.length === 0 || this._isReactNativeWebrtc) {
       this._pc.getStats().then(
-        res => {
+        (res) => {
           const reports = []
-          res.forEach(report => {
+          res.forEach((report) => {
             reports.push(flattenValues(report))
           })
           cb(null, reports)
         },
-        err => cb(err)
+        err => cb(err),
       )
 
       // Single-parameter callback-based getStats() (non-standard)
-    } else if (this._pc.getStats.length > 0) {
+    }
+    else if (this._pc.getStats.length > 0) {
       this._pc.getStats(
-        res => {
+        (res) => {
           // If we destroy connection in `connect` callback this code might happen to run when actual connection is already closed
-          if (this.destroyed) return
+          if (this.destroyed)
+            return
 
           const reports = []
-          res.result().forEach(result => {
+          res.result().forEach((result) => {
             const report = {}
-            result.names().forEach(name => {
+            result.names().forEach((name) => {
               report[name] = result.stat(name)
             })
             report.id = result.id
@@ -812,67 +870,70 @@ class Peer {
           })
           cb(null, reports)
         },
-        err => cb(err)
+        err => cb(err),
       )
 
       // Unknown browser, skip getStats() since it's anyone's guess which style of
       // getStats() they implement.
-    } else {
+    }
+    else {
       cb(null, [])
     }
   }
 
-  _maybeReady () {
+  _maybeReady() {
     this._debug(
       'maybeReady pc %s channel %s',
       this._pcReady,
-      this._channelReady
+      this._channelReady,
     )
     if (
-      this._connected ||
-      this._connecting ||
-      !this._pcReady ||
-      !this._channelReady
-    ) { return }
+      this._connected
+      || this._connecting
+      || !this._pcReady
+      || !this._channelReady
+    ) return
 
     this._connecting = true
 
     // HACK: We can't rely on order here, for details see https://github.com/js-platform/node-webrtc/issues/339
     const findCandidatePair = () => {
-      if (this.destroyed) return
+      if (this.destroyed)
+        return
 
       this.getStats((err, items) => {
-        if (this.destroyed) return
+        if (this.destroyed)
+          return
 
         // Treat getStats error as non-fatal. It's not essential.
-        if (err) items = []
+        if (err)
+          items = []
 
         const remoteCandidates = {}
         const localCandidates = {}
         const candidatePairs = {}
         let foundSelectedCandidatePair = false
 
-        items.forEach(item => {
+        items.forEach((item) => {
           // TODO: Once all browsers support the hyphenated stats report types, remove
           // the non-hypenated ones
           if (
-            item.type === 'remotecandidate' ||
-            item.type === 'remote-candidate'
-          ) {
+            item.type === 'remotecandidate'
+            || item.type === 'remote-candidate'
+          )
             remoteCandidates[item.id] = item
-          }
+
           if (
-            item.type === 'localcandidate' ||
-            item.type === 'local-candidate'
-          ) {
+            item.type === 'localcandidate'
+            || item.type === 'local-candidate'
+          )
             localCandidates[item.id] = item
-          }
-          if (item.type === 'candidatepair' || item.type === 'candidate-pair') {
+
+          if (item.type === 'candidatepair' || item.type === 'candidate-pair')
             candidatePairs[item.id] = item
-          }
         })
 
-        const setSelectedCandidatePair = selectedCandidatePair => {
+        const setSelectedCandidatePair = (selectedCandidatePair) => {
           foundSelectedCandidatePair = true
 
           let local = localCandidates[selectedCandidatePair.localCandidateId]
@@ -881,11 +942,13 @@ class Peer {
             // Spec
             this.localAddress = local.ip || local.address
             this.localPort = Number(local.port)
-          } else if (local && local.ipAddress) {
+          }
+          else if (local && local.ipAddress) {
             // Firefox
             this.localAddress = local.ipAddress
             this.localPort = Number(local.portNumber)
-          } else if (
+          }
+          else if (
             typeof selectedCandidatePair.googLocalAddress === 'string'
           ) {
             // TODO: remove this once Chrome 58 is released
@@ -899,18 +962,20 @@ class Peer {
               : 'IPv4'
           }
 
-          let remote =
-            remoteCandidates[selectedCandidatePair.remoteCandidateId]
+          let remote
+            = remoteCandidates[selectedCandidatePair.remoteCandidateId]
 
           if (remote && (remote.ip || remote.address)) {
             // Spec
             this.remoteAddress = remote.ip || remote.address
             this.remotePort = Number(remote.port)
-          } else if (remote && remote.ipAddress) {
+          }
+          else if (remote && remote.ipAddress) {
             // Firefox
             this.remoteAddress = remote.ipAddress
             this.remotePort = Number(remote.portNumber)
-          } else if (
+          }
+          else if (
             typeof selectedCandidatePair.googRemoteAddress === 'string'
           ) {
             // TODO: remove this once Chrome 58 is released
@@ -929,40 +994,40 @@ class Peer {
             this.localAddress,
             this.localPort,
             this.remoteAddress,
-            this.remotePort
+            this.remotePort,
           )
         }
 
-        items.forEach(item => {
+        items.forEach((item) => {
           // Spec-compliant
           if (item.type === 'transport' && item.selectedCandidatePairId) {
             setSelectedCandidatePair(
-              candidatePairs[item.selectedCandidatePairId]
+              candidatePairs[item.selectedCandidatePairId],
             )
           }
 
           // Old implementations
           if (
-            (item.type === 'googCandidatePair' &&
-              item.googActiveConnection === 'true') ||
-            ((item.type === 'candidatepair' ||
-              item.type === 'candidate-pair') &&
-              item.selected)
-          ) {
+            (item.type === 'googCandidatePair'
+            && item.googActiveConnection === 'true')
+            || ((item.type === 'candidatepair'
+            || item.type === 'candidate-pair')
+            && item.selected)
+          )
             setSelectedCandidatePair(item)
-          }
         })
 
         // Ignore candidate pair selection in browsers like Safari 11 that do not have any local or remote candidates
         // But wait until at least 1 candidate pair is available
         if (
-          !foundSelectedCandidatePair &&
-          (!Object.keys(candidatePairs).length ||
-            Object.keys(localCandidates).length)
+          !foundSelectedCandidatePair
+          && (!Object.keys(candidatePairs).length
+          || Object.keys(localCandidates).length)
         ) {
           setTimeout(findCandidatePair, 100)
           return
-        } else {
+        }
+        else {
           this._connecting = false
           this._connected = true
         }
@@ -970,7 +1035,8 @@ class Peer {
         if (this._chunk) {
           try {
             this.send(this._chunk)
-          } catch (err) {
+          }
+          catch (err) {
             return this.destroy(errCode(err, 'ERR_DATA_CHANNEL'))
           }
           this._chunk = null
@@ -985,7 +1051,8 @@ class Peer {
         // fallback to using setInterval to implement backpressure.
         if (typeof this._channel.bufferedAmountLowThreshold !== 'number') {
           this._interval = setInterval(() => this._onInterval(), 150)
-          if (this._interval.unref) this._interval.unref()
+          if (this._interval.unref)
+            this._interval.unref()
         }
 
         this._debug('connect')
@@ -995,26 +1062,27 @@ class Peer {
     findCandidatePair()
   }
 
-  _onInterval () {
+  _onInterval() {
     if (
-      !this._cb ||
-      !this._channel ||
-      this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT
-    ) {
+      !this._cb
+      || !this._channel
+      || this._channel.bufferedAmount > MAX_BUFFERED_AMOUNT
+    )
       return
-    }
+
     this._onChannelBufferedAmountLow()
   }
 
-  _onSignalingStateChange () {
-    if (this.destroyed) return
+  _onSignalingStateChange() {
+    if (this.destroyed)
+      return
 
     if (this._pc.signalingState === 'stable') {
       this._isNegotiating = false
 
       // HACK: Firefox doesn't yet support removing tracks when signalingState !== 'stable'
       this._debug('flushing sender queue', this._sendersAwaitingStable)
-      this._sendersAwaitingStable.forEach(sender => {
+      this._sendersAwaitingStable.forEach((sender) => {
         this._pc.removeTrack(sender)
         this._queuedNegotiation = true
       })
@@ -1024,7 +1092,8 @@ class Peer {
         this._debug('flushing negotiation queue')
         this._queuedNegotiation = false
         this._needsNegotiation() // negotiate again
-      } else {
+      }
+      else {
         this._debug('negotiated')
         this.emit('negotiated')
       }
@@ -1034,75 +1103,82 @@ class Peer {
     this.emit('signalingStateChange', this._pc.signalingState)
   }
 
-  _onIceCandidate (event) {
-    if (this.destroyed) return
+  _onIceCandidate(event) {
+    if (this.destroyed)
+      return
     if (event.candidate && this.trickle) {
       this.emit('signal', {
         type: 'candidate',
         candidate: {
           candidate: event.candidate.candidate,
           sdpMLineIndex: event.candidate.sdpMLineIndex,
-          sdpMid: event.candidate.sdpMid
-        }
+          sdpMid: event.candidate.sdpMid,
+        },
       })
-    } else if (!event.candidate && !this._iceComplete) {
+    }
+    else if (!event.candidate && !this._iceComplete) {
       this._iceComplete = true
       this.emit('_iceComplete')
     }
     // as soon as we've received one valid candidate start timeout
-    if (event.candidate) {
+    if (event.candidate)
       this._startIceCompleteTimeout()
-    }
   }
 
-  _onChannelMessage (event) {
-    if (this.destroyed) return
+  _onChannelMessage(event) {
+    if (this.destroyed)
+      return
     let data = event.data
-    if (data instanceof ArrayBuffer) data = new Uint8Array(data)
+    if (data instanceof ArrayBuffer)
+      data = new Uint8Array(data)
     this.emit('data', data)
   }
 
-  _onChannelBufferedAmountLow () {
-    if (this.destroyed || !this._cb) return
+  _onChannelBufferedAmountLow() {
+    if (this.destroyed || !this._cb)
+      return
     this._debug(
       'ending backpressure: bufferedAmount %d',
-      this._channel.bufferedAmount
+      this._channel.bufferedAmount,
     )
     const cb = this._cb
     this._cb = null
     cb(null)
   }
 
-  _onChannelOpen () {
-    if (this._connected || this.destroyed) return
+  _onChannelOpen() {
+    if (this._connected || this.destroyed)
+      return
     this._debug('on channel open')
     this._channelReady = true
     this._maybeReady()
   }
 
-  _onChannelClose () {
-    if (this.destroyed) return
+  _onChannelClose() {
+    if (this.destroyed)
+      return
     this._debug('on channel close')
     this.destroy()
   }
 
-  _onTrack (event) {
-    if (this.destroyed) return
+  _onTrack(event) {
+    if (this.destroyed)
+      return
 
-    event.streams.forEach(eventStream => {
+    event.streams.forEach((eventStream) => {
       this._debug('on track')
       this.emit('track', event.track, eventStream)
 
       this._remoteTracks.push({
         track: event.track,
-        stream: eventStream
+        stream: eventStream,
       })
 
       if (
-        this._remoteStreams.some(remoteStream => {
+        this._remoteStreams.some((remoteStream) => {
           return remoteStream.id === eventStream.id
         })
-      ) { return } // Only fire one 'stream' event, even though there may be multiple tracks per stream
+      ) return // Only fire one 'stream' event, even though there may be multiple tracks per stream
 
       this._remoteStreams.push(eventStream)
       queueMicrotask(() => {
@@ -1112,28 +1188,32 @@ class Peer {
     })
   }
 
-  _debug (...args) {
-    if (!this._doDebug) return
-    args[0] = '[' + this._id + '] ' + args[0]
+  _debug(...args) {
+    if (!this._doDebug)
+      return
+    args[0] = `[${this._id}] ${args[0]}`
     console.log(...args)
   }
 
   // event emitter
-  on (key, listener) {
+  on(key, listener) {
     const map = this._map
-    if (!map.has(key)) map.set(key, new Set())
+    if (!map.has(key))
+      map.set(key, new Set())
     map.get(key).add(listener)
   }
 
-  off (key, listener) {
+  off(key, listener) {
     const map = this._map
     const listeners = map.get(key)
-    if (!listeners) return
+    if (!listeners)
+      return
     listeners.delete(listener)
-    if (listeners.size === 0) map.delete(key)
+    if (listeners.size === 0)
+      map.delete(key)
   }
 
-  once (key, listener) {
+  once(key, listener) {
     const listener_ = (...args) => {
       this.off(key, listener_)
       listener(...args)
@@ -1141,13 +1221,15 @@ class Peer {
     this.on(key, listener_)
   }
 
-  emit (key, ...args) {
+  emit(key, ...args) {
     const map = this._map
-    if (!map.has(key)) return
+    if (!map.has(key))
+      return
     for (const listener of map.get(key)) {
       try {
         listener(...args)
-      } catch (err) {
+      }
+      catch (err) {
         console.error(err)
       }
     }
@@ -1166,11 +1248,11 @@ Peer.config = {
     {
       urls: [
         'stun:stun.l.google.com:19302',
-        'stun:global.stun.twilio.com:3478'
-      ]
-    }
+        'stun:global.stun.twilio.com:3478',
+      ],
+    },
   ],
-  sdpSemantics: 'unified-plan'
+  sdpSemantics: 'unified-plan',
 }
 
 Peer.channelConfig = {}

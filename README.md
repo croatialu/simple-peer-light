@@ -76,32 +76,32 @@ Let's create an html page that lets you manually connect two peers:
     </form>
     <pre id="outgoing"></pre>
     <script type="module">
-      import Peer from './simplepeer.min.js';
+      import Peer from './simplepeer.min.js'
       const p = new Peer({
         initiator: location.hash === '#1',
         trickle: false,
-      });
+      })
 
-      p.on('error', err => console.log('error', err));
+      p.on('error', (err) => console.log('error', err))
 
-      p.on('signal', data => {
-        console.log('SIGNAL', JSON.stringify(data));
-        document.querySelector('#outgoing').textContent = JSON.stringify(data);
-      });
+      p.on('signal', (data) => {
+        console.log('SIGNAL', JSON.stringify(data))
+        document.querySelector('#outgoing').textContent = JSON.stringify(data)
+      })
 
-      document.querySelector('form').addEventListener('submit', ev => {
-        ev.preventDefault();
-        p.signal(JSON.parse(document.querySelector('#incoming').value));
-      });
+      document.querySelector('form').addEventListener('submit', (ev) => {
+        ev.preventDefault()
+        p.signal(JSON.parse(document.querySelector('#incoming').value))
+      })
 
       p.on('connect', () => {
-        console.log('CONNECT');
-        p.send('whatever' + Math.random());
-      });
+        console.log('CONNECT')
+        p.send('whatever' + Math.random())
+      })
 
-      p.on('data', data => {
-        console.log('data: ' + data);
-      });
+      p.on('data', (data) => {
+        console.log('data: ' + data)
+      })
     </script>
   </body>
 </html>
@@ -128,30 +128,30 @@ peer-to-peer connection is established.
 ### data channels
 
 ```js
-import Peer from 'simple-peer-light';
+import Peer from 'simple-peer-light'
 
-var peer1 = new Peer({initiator: true});
-var peer2 = new Peer();
+const peer1 = new Peer({ initiator: true })
+const peer2 = new Peer()
 
-peer1.on('signal', data => {
+peer1.on('signal', (data) => {
   // when peer1 has signaling data, give it to peer2 somehow
-  peer2.signal(data);
-});
+  peer2.signal(data)
+})
 
-peer2.on('signal', data => {
+peer2.on('signal', (data) => {
   // when peer2 has signaling data, give it to peer1 somehow
-  peer1.signal(data);
-});
+  peer1.signal(data)
+})
 
 peer1.on('connect', () => {
   // wait for 'connect' event before using the data channel
-  peer1.send('hey peer2, how is it going?');
-});
+  peer1.send('hey peer2, how is it going?')
+})
 
-peer2.on('data', data => {
+peer2.on('data', (data) => {
   // got a data channel message
-  console.log('got a message from peer1: ' + data);
-});
+  console.log(`got a message from peer1: ${data}`)
+})
 ```
 
 ### video/voice
@@ -159,7 +159,7 @@ peer2.on('data', data => {
 Video/voice is also super simple! In this example, peer1 sends video to peer2.
 
 ```js
-import Peer from 'simple-peer-light';
+import Peer from 'simple-peer-light'
 
 // get video/voice stream
 navigator.mediaDevices
@@ -168,32 +168,31 @@ navigator.mediaDevices
     audio: true,
   })
   .then(gotMedia)
-  .catch(() => {});
+  .catch(() => {})
 
 function gotMedia(stream) {
-  var peer1 = new Peer({initiator: true, stream: stream});
-  var peer2 = new Peer();
+  const peer1 = new Peer({ initiator: true, stream })
+  const peer2 = new Peer()
 
-  peer1.on('signal', data => {
-    peer2.signal(data);
-  });
+  peer1.on('signal', (data) => {
+    peer2.signal(data)
+  })
 
-  peer2.on('signal', data => {
-    peer1.signal(data);
-  });
+  peer2.on('signal', (data) => {
+    peer1.signal(data)
+  })
 
-  peer2.on('stream', stream => {
+  peer2.on('stream', (stream) => {
     // got remote video stream, now let's show it in a video tag
-    var video = document.querySelector('video');
+    const video = document.querySelector('video')
 
-    if ('srcObject' in video) {
-      video.srcObject = stream;
-    } else {
-      video.src = window.URL.createObjectURL(stream); // for older browsers
-    }
+    if ('srcObject' in video)
+      video.srcObject = stream
+    else
+      video.src = window.URL.createObjectURL(stream) // for older browsers
 
-    video.play();
-  });
+    video.play()
+  })
 }
 ```
 
@@ -207,34 +206,33 @@ It is also possible to establish a data-only connection at first, and later add
 a video/voice stream, if desired.
 
 ```js
-import Peer from 'simple-peer-light'; // create peer without waiting for media
+import Peer from 'simple-peer-light' // create peer without waiting for media
 
-var peer1 = new Peer({initiator: true}); // you don't need streams here
-var peer2 = new Peer();
+const peer1 = new Peer({ initiator: true }) // you don't need streams here
+const peer2 = new Peer()
 
-peer1.on('signal', data => {
-  peer2.signal(data);
-});
+peer1.on('signal', (data) => {
+  peer2.signal(data)
+})
 
-peer2.on('signal', data => {
-  peer1.signal(data);
-});
+peer2.on('signal', (data) => {
+  peer1.signal(data)
+})
 
-peer2.on('stream', stream => {
+peer2.on('stream', (stream) => {
   // got remote video stream, now let's show it in a video tag
-  var video = document.querySelector('video');
+  const video = document.querySelector('video')
 
-  if ('srcObject' in video) {
-    video.srcObject = stream;
-  } else {
-    video.src = window.URL.createObjectURL(stream); // for older browsers
-  }
+  if ('srcObject' in video)
+    video.srcObject = stream
+  else
+    video.src = window.URL.createObjectURL(stream) // for older browsers
 
-  video.play();
-});
+  video.play()
+})
 
 function addMedia(stream) {
-  peer1.addStream(stream); // <- add streams to peer dynamically
+  peer1.addStream(stream) // <- add streams to peer dynamically
 }
 
 // then, anytime later...
@@ -244,7 +242,7 @@ navigator.mediaDevices
     audio: true,
   })
   .then(addMedia)
-  .catch(() => {});
+  .catch(() => {})
 ```
 
 ## api
@@ -345,11 +343,12 @@ event on the stream.
 Detect native WebRTC support in the javascript environment.
 
 ```js
-import Peer from 'simple-peer-light';
+import Peer from 'simple-peer-light'
 
 if (Peer.WEBRTC_SUPPORT) {
   // webrtc support!
-} else {
+}
+else {
   // fallback
 }
 ```
@@ -382,15 +381,15 @@ Received a message from the remote peer (via the data channel).
 Received a remote video stream, which can be displayed in a video tag:
 
 ```js
-peer.on('stream', stream => {
-  var video = document.querySelector('video');
-  if ('srcObject' in video) {
-    video.srcObject = stream;
-  } else {
-    video.src = window.URL.createObjectURL(stream);
-  }
-  video.play();
-});
+peer.on('stream', (stream) => {
+  const video = document.querySelector('video')
+  if ('srcObject' in video)
+    video.srcObject = stream
+  else
+    video.src = window.URL.createObjectURL(stream)
+
+  video.play()
+})
 ```
 
 ### `peer.on('track', (track, stream) => {})`
@@ -447,96 +446,96 @@ For clarity, here is the code to connect 3 peers together:
 
 ```js
 // These are peer1's connections to peer2 and peer3
-var peer2 = new Peer({initiator: true});
-var peer3 = new Peer({initiator: true});
+const peer2 = new Peer({ initiator: true })
+const peer3 = new Peer({ initiator: true })
 
-peer2.on('signal', data => {
+peer2.on('signal', (data) => {
   // send this signaling data to peer2 somehow
-});
+})
 
 peer2.on('connect', () => {
-  peer2.send('hi peer2, this is peer1');
-});
+  peer2.send('hi peer2, this is peer1')
+})
 
-peer2.on('data', data => {
-  console.log('got a message from peer2: ' + data);
-});
+peer2.on('data', (data) => {
+  console.log(`got a message from peer2: ${data}`)
+})
 
-peer3.on('signal', data => {
+peer3.on('signal', (data) => {
   // send this signaling data to peer3 somehow
-});
+})
 
 peer3.on('connect', () => {
-  peer3.send('hi peer3, this is peer1');
-});
+  peer3.send('hi peer3, this is peer1')
+})
 
-peer3.on('data', data => {
-  console.log('got a message from peer3: ' + data);
-});
+peer3.on('data', (data) => {
+  console.log(`got a message from peer3: ${data}`)
+})
 ```
 
 #### Peer 2
 
 ```js
 // These are peer2's connections to peer1 and peer3
-var peer1 = new Peer();
-var peer3 = new Peer({initiator: true});
+const peer1 = new Peer()
+const peer3 = new Peer({ initiator: true })
 
-peer1.on('signal', data => {
+peer1.on('signal', (data) => {
   // send this signaling data to peer1 somehow
-});
+})
 
 peer1.on('connect', () => {
-  peer1.send('hi peer1, this is peer2');
-});
+  peer1.send('hi peer1, this is peer2')
+})
 
-peer1.on('data', data => {
-  console.log('got a message from peer1: ' + data);
-});
+peer1.on('data', (data) => {
+  console.log(`got a message from peer1: ${data}`)
+})
 
-peer3.on('signal', data => {
+peer3.on('signal', (data) => {
   // send this signaling data to peer3 somehow
-});
+})
 
 peer3.on('connect', () => {
-  peer3.send('hi peer3, this is peer2');
-});
+  peer3.send('hi peer3, this is peer2')
+})
 
-peer3.on('data', data => {
-  console.log('got a message from peer3: ' + data);
-});
+peer3.on('data', (data) => {
+  console.log(`got a message from peer3: ${data}`)
+})
 ```
 
 #### Peer 3
 
 ```js
 // These are peer3's connections to peer1 and peer2
-var peer1 = new Peer();
-var peer2 = new Peer();
+const peer1 = new Peer()
+const peer2 = new Peer()
 
-peer1.on('signal', data => {
+peer1.on('signal', (data) => {
   // send this signaling data to peer1 somehow
-});
+})
 
 peer1.on('connect', () => {
-  peer1.send('hi peer1, this is peer3');
-});
+  peer1.send('hi peer1, this is peer3')
+})
 
-peer1.on('data', data => {
-  console.log('got a message from peer1: ' + data);
-});
+peer1.on('data', (data) => {
+  console.log(`got a message from peer1: ${data}`)
+})
 
-peer2.on('signal', data => {
+peer2.on('signal', (data) => {
   // send this signaling data to peer2 somehow
-});
+})
 
 peer2.on('connect', () => {
-  peer2.send('hi peer2, this is peer3');
-});
+  peer2.send('hi peer2, this is peer3')
+})
 
-peer2.on('data', data => {
-  console.log('got a message from peer2: ' + data);
-});
+peer2.on('data', (data) => {
+  console.log(`got a message from peer2: ${data}`)
+})
 ```
 
 ## memory usage
